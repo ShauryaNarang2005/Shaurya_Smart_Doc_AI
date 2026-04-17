@@ -3,7 +3,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from duckduckgo_search import DDGS
 import streamlit as st
 
-# 🔐 API Key (Streamlit secrets)
+# 🔐 API Key
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 docs_chunks = []
@@ -15,14 +15,13 @@ def load_pdf(pdf_path):
     documents = loader.load()
     docs_chunks = [doc.page_content for doc in documents]
 
-# 🔍 Retrieve relevant chunks
+# 🔍 Retrieve chunks
 def retrieve_relevant_chunks(query):
     query_words = set(query.lower().split())
     scored = []
 
     for chunk in docs_chunks:
-        chunk_lower = chunk.lower()
-        score = sum(1 for word in query_words if word in chunk_lower)
+        score = sum(1 for word in query_words if word in chunk.lower())
         if score > 0:
             scored.append((score, chunk))
 
@@ -34,7 +33,7 @@ def retrieve_relevant_chunks(query):
 
     return "\n\n".join(top_chunks)
 
-# 🌐 Web search (FIXED - no LangChain wrapper)
+# 🌐 Web search (STABLE)
 def get_web_context(query):
     try:
         results_text = []
@@ -46,7 +45,7 @@ def get_web_context(query):
     except:
         return ""
 
-# 🧠 Improve vague queries
+# 🧠 Improve query
 def enhance_query(query):
     if len(query.split()) < 4:
         return query + " explain in detail"
@@ -58,46 +57,48 @@ def ask_question(query, use_pdf=False):
         query = enhance_query(query)
         web_context = get_web_context(query)
 
-        # 📘 PDF Mode
+        # 📘 PDF MODE
         if use_pdf and docs_chunks:
             context = retrieve_relevant_chunks(query)
 
             prompt = f"""
-You are an expert mathematics and academic assistant.
+You are an expert assistant.
 
 User Question: {query}
 
 Document Context:
 {context}
 
-Latest Web Information:
+Web Data:
 {web_context}
 
-Instructions:
+STRICT INSTRUCTIONS:
+- Prefer Document Context
+- Otherwise use Web Data
+- NEVER mention knowledge cutoff
 - ALWAYS use LaTeX for math
-- Inline: $x^2$
-- Block: $$x^2 + 2x + 1 = 0$$
 - Show steps clearly
-- Explain reasoning
-- Clearly mark Final Answer
+- Final Answer must be clear
 
 Final Answer:
 """
 
-        # 🌍 General Mode
+        # 🌍 GENERAL MODE
         else:
             prompt = f"""
-You are a helpful AI assistant with access to latest web data.
+You are an AI assistant with access to real-time web data.
 
 User Question: {query}
 
-Latest Web Information:
+Web Data:
 {web_context}
 
-Instructions:
-- Use latest info
+STRICT INSTRUCTIONS:
+- You MUST answer ONLY using the Web Data
+- DO NOT use your own knowledge
+- DO NOT mention knowledge cutoff
+- If web data is empty say: "No latest information available"
 - If math present → use LaTeX ($, $$)
-- Do NOT hallucinate
 
 Answer:
 """
