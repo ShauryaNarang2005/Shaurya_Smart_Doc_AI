@@ -1,24 +1,22 @@
 from groq import Groq
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.tools import DuckDuckGoSearchRun
+from duckduckgo_search import DDGS
 import streamlit as st
 
-# ✅ FIX: Use Streamlit secrets (important for deployment)
+# 🔐 API Key (Streamlit secrets)
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-
-# 🌐 Web search
-search = DuckDuckGoSearchRun()
 
 docs_chunks = []
 
+# 📄 Load PDF
 def load_pdf(pdf_path):
     global docs_chunks
     loader = PyPDFLoader(pdf_path)
     documents = loader.load()
     docs_chunks = [doc.page_content for doc in documents]
 
+# 🔍 Retrieve relevant chunks
 def retrieve_relevant_chunks(query):
-    global docs_chunks
     query_words = set(query.lower().split())
     scored = []
 
@@ -36,10 +34,15 @@ def retrieve_relevant_chunks(query):
 
     return "\n\n".join(top_chunks)
 
-# 🌐 Get latest info
+# 🌐 Web search (FIXED - no LangChain wrapper)
 def get_web_context(query):
     try:
-        return search.run(query)
+        results_text = []
+        with DDGS() as ddgs:
+            results = ddgs.text(query, max_results=3)
+            for r in results:
+                results_text.append(r["body"])
+        return "\n".join(results_text)
     except:
         return ""
 
@@ -49,6 +52,7 @@ def enhance_query(query):
         return query + " explain in detail"
     return query
 
+# 🤖 Main function
 def ask_question(query, use_pdf=False):
     try:
         query = enhance_query(query)
@@ -73,9 +77,7 @@ Instructions:
 - ALWAYS use LaTeX for math
 - Inline: $x^2$
 - Block: $$x^2 + 2x + 1 = 0$$
-- Use matrix format:
-  $$\\begin{{bmatrix}} a \\\\ b \\end{{bmatrix}}$$
-- Show steps clearly (Step 1, Step 2...)
+- Show steps clearly
 - Explain reasoning
 - Clearly mark Final Answer
 
@@ -101,7 +103,7 @@ Answer:
 """
 
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",   # ✅ FIXED MODEL
+            model="llama-3.1-8b-instant",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=1500
         )
