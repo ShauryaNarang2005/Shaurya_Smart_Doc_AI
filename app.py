@@ -27,7 +27,7 @@ if query:
     st.markdown("## 🤖 Answer:")
     st.markdown("---")
 
-    # ✅ Better LaTeX rendering (cleaner)
+    # 🔥 Proper LaTeX rendering
     parts = re.split(r'(\$\$.*?\$\$|\$.*?\$)', answer, flags=re.DOTALL)
 
     for part in parts:
@@ -36,14 +36,12 @@ if query:
         if not part:
             continue
 
-        # Block LaTeX
         if part.startswith('$$') and part.endswith('$$'):
             try:
                 st.latex(part[2:-2].strip())
             except:
                 st.markdown(part)
 
-        # Inline LaTeX
         elif part.startswith('$') and part.endswith('$'):
             try:
                 st.latex(part[1:-1].strip())
