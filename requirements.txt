@@ -1,4 +1,6 @@
 streamlit
 groq
-pypdf
+langchain
 langchain-community
+duckduckgo-search
+pypdf
